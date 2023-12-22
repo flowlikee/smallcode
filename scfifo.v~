@@ -172,4 +172,3 @@ always @(posedge clk ) begin
 end
 assign dout=dout_reg;
 endmodule
-
