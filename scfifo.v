@@ -1,4 +1,23 @@
-
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date: 01/01/2024 04:54:47 PM
+// Design Name: 
+// Module Name: scfifo
+// Project Name: 
+// Target Devices: 
+// Tool Versions: 
+// Description: 
+// 
+// Dependencies: 
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+//////////////////////////////////////////////////////////////////////////////////
 module scfifo #(
     parameter integer DEPTH = 32,//input 
     parameter integer I_WIDTH = 32,
@@ -14,7 +33,8 @@ module scfifo #(
     output wire [O_WIDTH-1:0]dout,
     output reg dout_valid,
     output reg overflow,
-    output reg underflow
+    output reg underflow,
+    input wire fifo_clr
 );
 reg [I_WIDTH-1:0] mem[DEPTH-1:0];
 reg [$clog2(DEPTH):0] wr_ptr;
@@ -44,7 +64,7 @@ always @(posedge clk) begin
 end
 
 always @(posedge clk ) begin
-    if (~rst_n) begin
+    if (~rst_n || fifo_clr) begin
         wr_ptr <=0;
     end else if (wr_valid && wr_rdy) begin
         wr_ptr <=wr_ptr + 1;
@@ -107,7 +127,7 @@ always @(posedge clk ) begin
     end
 end
 always @(posedge clk ) begin
-    if (~rst_n) begin
+    if (~rst_n || fifo_clr) begin
         rd_ptr <= 0;
     end else if (rd_valid && rd_rdy) begin
         rd_ptr <= rd_ptr+1;
@@ -117,7 +137,7 @@ always @(posedge clk ) begin
 end
 
 reg data_out_valid;
-parameter integer rd_addr_LOW=(O_WIDTH==I_WIDTH)?1:$clog2(I_WIDTH/O_WIDTH);
+parameter integer rd_addr_LOW=$clog2(I_WIDTH/O_WIDTH);
 parameter integer rd_addr_HIGH=$clog2(DEPTH*I_WIDTH/O_WIDTH);
 reg [O_WIDTH-1:0]dout_reg;
 always @(*) begin
@@ -139,7 +159,7 @@ end
 always @(*) begin
     if (~rst_n) begin
         empty<=0;
-    end else if (count<=1) begin
+    end else if (count == 0) begin
         empty<=1;
     end else  begin
         empty<=0;
@@ -156,8 +176,8 @@ always @(posedge clk ) begin
             data_out<=mem[rd_addr];
         end else begin
           //  $display("rd_addr is ",rd_addr);
-            $display("rd_data is ",mem[rd_addr][O_WIDTH*rd_ptr[rd_addr_LOW-1:0]+:O_WIDTH]);
-            data_out<=mem[rd_addr][O_WIDTH*rd_ptr[rd_addr_LOW-1:0]+:O_WIDTH];
+            //$display("rd_data is ",mem[rd_addr][O_WIDTH*rd_ptr[rd_addr_LOW-1:0]+:O_WIDTH]);
+            data_out<=mem[rd_addr][I_WIDTH-1-O_WIDTH*rd_ptr[rd_addr_LOW-1:0]-:O_WIDTH];
         end
         data_out_valid<=1;
     end else begin
